@@ -93,7 +93,7 @@ export const VideoLinkOpenModeConfig: Record<EVideoLinkOpenMode, VideoLinkOpenMo
     enabled: isMac,
     desc: (
       <>
-        <a href='https://github.com/magicdawn/Bilibili-Gate/blob/main/notes/iina.md' target='_blank'>
+        <a href='https://github.com/Eco404/Bilibili-Gate/blob/main/notes/iina.md' target='_blank'>
           macOS IINA 设置教程
         </a>
       </>

@@ -1,7 +1,7 @@
-import { useEventListener, useMemoizedFn, useRafState, useUnmountedRef } from 'ahooks'
+import { useEventListener, useMemoizedFn, useRafState, useUnmount, useUnmountedRef } from 'ahooks'
 import { delay } from 'es-toolkit'
-import { useMemo, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react'
-import { __PROD__, appLog } from '$common'
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react'
+import { __PROD__, appLog, appWarn } from '$common'
 import { useEmitterOn } from '$common/hooks/useEmitter'
 import { useRefBox, useRefStateBox, type RefBox, type RefStateBox } from '$common/hooks/useRefState'
 import { settings } from '$modules/settings'
@@ -23,6 +23,7 @@ function debugAnimation(...args: Parameters<typeof appLog>) {
  * 自动以动画方式预览
  */
 export function usePreviewRelated({
+  enabled = true,
   uniqId,
   recSharedEmitter,
   title,
@@ -33,6 +34,7 @@ export function usePreviewRelated({
   autoPreviewWhenHover,
   videoPreviewWrapperRef,
 }: {
+  enabled?: boolean
   uniqId: string
   recSharedEmitter: RecSharedEmitter
   title: string
@@ -43,15 +45,34 @@ export function usePreviewRelated({
   autoPreviewWhenHover: boolean
   videoPreviewWrapperRef: RefObject<HTMLElement | null>
 }) {
+  const unmounted = useUnmountedRef()
+  const requestGeneration = useRef(0)
+  const isCurrentRequest = useMemoizedFn(
+    (generation: number) => enabled && !unmounted.current && generation === requestGeneration.current,
+  )
   const hasVideoData = useMemoizedFn(() => {
     const data = imagePreviewDataBox.val?.videoshotJson?.data
     return Boolean(data?.index?.length && data?.image?.length)
+  })
+  const pendingFetch = useRef<{ uniqId: string; promise: Promise<void> } | undefined>(undefined)
+  const fetchPreviewData = useMemoizedFn(() => {
+    if (pendingFetch.current?.uniqId === uniqId) return pendingFetch.current.promise
+
+    // A new hover must await the original request, even if the caller uses useLockFn.
+    const promise = Promise.resolve()
+      .then(tryFetchImagePreviewData)
+      .finally(() => {
+        if (pendingFetch.current?.promise === promise) pendingFetch.current = undefined
+      })
+    pendingFetch.current = { uniqId, promise }
+    return promise
   })
 
   const [autoPreviewing, setAutoPreviewing] = useState(false)
   const [previewProgress, setPreviewProgress] = useRafState<number | undefined>()
   const [previewT, setPreviewT] = useRafState<number | undefined>()
   const getProgress = useMemoizedFn(() => previewProgress || 0)
+  const getVideoDuration = useMemoizedFn(() => videoDuration)
 
   const [mouseMoved, setMouseMoved] = useState(false)
 
@@ -64,54 +85,54 @@ export function usePreviewRelated({
   const [mouseProgress, setMouseProgress] = useState<number | undefined>(undefined)
   const updateMouseProgress = (e: MouseEvent) => {
     const rect = videoPreviewWrapperRef.current?.getBoundingClientRect()
-    if (!rect) return
+    if (!rect || rect.width <= 0) return
     // https://github.com/alibaba/hooks/blob/v3.7.0/packages/hooks/src/useMouse/index.ts#L62
     const { x, width } = rect
     const relativeX = e.pageX - window.scrollX - x
-    setMouseProgress(relativeX / width)
+    setMouseProgress(minmax(relativeX / width, 0, 1))
   }
+
+  const startHoverPreview = useMemoizedFn(async () => {
+    const generation = ++requestGeneration.current
+    if (!enabled || unmounted.current || !isHoveringBox.val) return
+
+    isHoveringAfterDelayBox.set(false)
+    try {
+      // Fetch and hover delay run together, so a slow request adds no extra delay.
+      await Promise.all([fetchPreviewData(), settings.useDelayForHover ? delay(800) : undefined])
+    } catch (error) {
+      if (isCurrentRequest(generation)) appWarn('image preview request failed: %o', error)
+      return
+    }
+
+    if (!isCurrentRequest(generation) || !isHoveringBox.val) return
+    isHoveringAfterDelayBox.set(true)
+
+    if (autoPreviewWhenHover && idBox.val === undefined && hasVideoData()) {
+      debugAnimation(`mouseenter onStartPreviewAnimation uniqId=%s title=%s`, uniqId, title)
+      onStartPreviewAnimation(true)
+    }
+  })
 
   useEventListener(
     'mouseenter',
-    async (e) => {
+    (e) => {
       recSharedEmitter.emit('mouseenter', uniqId)
 
       isHoveringBox.set(true)
       updateMouseProgress(e)
 
-      // fetch data
-      const p = tryFetchImagePreviewData()
-
-      // delay
-      const HOVER_DELAY = 800
-      let delayPromise: Promise<void> | undefined
-      if (settings.useDelayForHover) {
-        delayPromise = delay(HOVER_DELAY)
-      }
-
-      // normal: fetch instantly, wait hover delay
-      // abnormal: bad network, already delay caused by network, so no wait again
-      await Promise.all([p, delayPromise].filter(Boolean))
-
-      // mouse leave after delay
-      if (!isHoveringBox.val) return
-
-      // set delay flag
-      isHoveringAfterDelayBox.set(true)
-
-      // start preview animation
-      if (autoPreviewWhenHover && !idBox.val && hasVideoData()) {
-        debugAnimation(`mouseenter onStartPreviewAnimation uniqId=%s title=%s`, uniqId, title)
-        onStartPreviewAnimation(true)
-      }
+      void startHoverPreview()
     },
     { target: videoPreviewWrapperRef },
   )
 
   // mouseleave
   const _mouseleaveAction = useMemoizedFn(() => {
+    requestGeneration.current++
     isHoveringBox.set(false)
     isHoveringAfterDelayBox.set(false)
+    if (startByHoverBox.val) animationController.stop()
   })
   useEventListener('mouseleave', _mouseleaveAction, { target: videoPreviewWrapperRef })
   useEmitterOn(recSharedEmitter, 'mouseenter', ({ data: srcUniqId }) => {
@@ -142,6 +163,7 @@ export function usePreviewRelated({
   const onResume = useRef<(() => void) | undefined>(undefined)
 
   const animationController = useAnimationController({
+    enabled,
     startByHoverBox,
     isHoveringBox,
     active,
@@ -157,10 +179,17 @@ export function usePreviewRelated({
   })
 
   const onHotkeyPreviewAnimation = useMemoizedFn(async () => {
+    if (!enabled || unmounted.current || !active) return
     // console.log('hotkey preview', animationPaused)
-    if (!idBox.val) {
-      await tryFetchImagePreviewData()
-      if (hasVideoData()) {
+    if (idBox.val === undefined) {
+      const generation = ++requestGeneration.current
+      try {
+        await fetchPreviewData()
+      } catch (error) {
+        if (isCurrentRequest(generation)) appWarn('image preview request failed: %o', error)
+        return
+      }
+      if (isCurrentRequest(generation) && hasVideoData()) {
         onStartPreviewAnimation(false)
       }
       return
@@ -171,6 +200,8 @@ export function usePreviewRelated({
   })
 
   const onStartPreviewAnimation = useMemoizedFn((startByHover: boolean) => {
+    if (!enabled || unmounted.current || !hasVideoData()) return
+    if (startByHover ? !isHoveringBox.val : !active) return
     startByHoverBox.set(startByHover)
     setMouseMoved(false)
     animationController.reset()
@@ -206,8 +237,9 @@ export function usePreviewRelated({
           setPreviewProgress(p)
 
           updateAt = now
-          if (videoDuration) {
-            const t = minmax(Math.round(p * videoDuration), 0, videoDuration)
+          const duration = getVideoDuration()
+          if (duration) {
+            const t = minmax(Math.round(p * duration), 0, duration)
             setPreviewT(t)
           }
         }
@@ -219,11 +251,31 @@ export function usePreviewRelated({
     idBox.val = requestAnimationFrame(frame)
   })
 
+  const stopAnimation = animationController.stop
+  useEffect(() => {
+    requestGeneration.current++
+    isHoveringAfterDelayBox.set(false)
+    stopAnimation()
+    if (enabled && isHoveringBox.val) void startHoverPreview()
+
+    return () => {
+      requestGeneration.current++
+    }
+  }, [enabled, autoPreviewWhenHover, uniqId, isHoveringBox, isHoveringAfterDelayBox, stopAnimation, startHoverPreview])
+
+  useUnmount(() => {
+    requestGeneration.current++
+    if (idBox.val !== undefined) cancelAnimationFrame(idBox.val)
+    idBox.val = undefined
+    onResume.current = undefined
+  })
+
   const isHovering = isHoveringBox.state
   const isHoveringAfterDelay = isHoveringAfterDelayBox.state
 
   const videoshotData = imagePreviewDataBox.state?.videoshotJson?.data
   const shouldShowPreview =
+    enabled &&
     !!videoshotData?.image?.length &&
     !!videoDuration &&
     (isHoveringAfterDelay || active) &&
@@ -266,6 +318,7 @@ export function usePreviewRelated({
 }
 
 function useAnimationController({
+  enabled,
   startByHoverBox,
   isHoveringBox,
   idBox,
@@ -277,6 +330,7 @@ function useAnimationController({
   setPreviewProgress,
   onResume,
 }: {
+  enabled: boolean
   startByHoverBox: RefBox<boolean>
   isHoveringBox: RefStateBox<boolean>
   idBox: RefBox<number | undefined>
@@ -295,7 +349,7 @@ function useAnimationController({
   //  - 不再 active
   //  - 组件卸载了
   const shouldStop = useMemoizedFn(() => {
-    if (unmounted.current) return true
+    if (!enabled || unmounted.current) return true
 
     // mouse
     if (startByHoverBox.val) {
@@ -321,8 +375,9 @@ function useAnimationController({
       })
     }
 
-    if (idBox.val) cancelAnimationFrame(idBox.val)
+    if (idBox.val !== undefined) cancelAnimationFrame(idBox.val)
     idBox.val = undefined
+    if (unmounted.current) return
     setAutoPreviewing(false)
     setPreviewProgress(undefined)
     setPreviewT(undefined)

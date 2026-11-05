@@ -1,9 +1,13 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+
+permissions:
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}
@@ -11,33 +15,18 @@ concurrency:
   # cancel-in-progress: true
 
 jobs:
-  ghd:
-    runs-on: ubuntu-latest
-    # Map a step output to a job output
-    outputs:
-      describe: ${{ steps.ghd.outputs.describe }}
-      tag: ${{ steps.ghd.outputs.tag }}
-      distance: ${{ steps.ghd.outputs.distance }}
-      sha: ${{ steps.ghd.outputs.sha }}
-    steps:
-      - name: Git describe
-        id: ghd
-        uses: proudust/gh-describe@v3
-
   test-and-build:
     runs-on: ubuntu-latest
 
-    # git describe
-    needs: ghd
     env:
       RELEASE_NIGHTLY: 'true'
-      GHD_DESCRIBE: ${{ needs.ghd.outputs.describe }}
-      GHD_TAG: ${{ needs.ghd.outputs.tag }}
-      GHD_DISTANCE: ${{ needs.ghd.outputs.distance }}
-      GHD_SHA: ${{ needs.ghd.outputs.sha }}
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set nightly version input
+        run: echo "GHD_DESCRIBE=$(git describe --tags --long --always)" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:

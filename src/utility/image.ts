@@ -35,10 +35,11 @@ export function getAvatarSrc(avatar: string) {
 }
 
 export function preloadImg(src: string) {
+  if (!src) return Promise.resolve(false)
   return new Promise<boolean>((resolve) => {
     const img = new Image()
-    img.src = src
     img.onload = () => resolve(true)
     img.onerror = () => resolve(false)
+    img.src = src
   })
 }

@@ -6,6 +6,8 @@ describe.concurrent('$utility/video', () => {
   it('.parseDuration', () => {
     expect(parseDuration('01:23')).to.equal(83)
     expect(parseDuration('00:01:23')).to.equal(83)
+    expect(parseDuration('01:01:23')).to.equal(3683)
+    expect(parseDuration('12:34:56')).to.equal(45296)
   })
 
   it('.parseCount', () => {

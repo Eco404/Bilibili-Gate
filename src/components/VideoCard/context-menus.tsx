@@ -380,7 +380,7 @@ export function useContextMenus(options: UseContextMenuOptions): AntMenuItem[] {
         icon: <IconForOpenExternalLink className={clsContextMenuIcon} />,
         onClick: () =>
           openNewTab(
-            'https://github.com/magicdawn/Bilibili-Gate?tab=readme-ov-file#%E5%8F%B3%E9%94%AE%E8%8F%9C%E5%8D%95-%E6%9F%A5%E7%9C%8B-up-%E7%9A%84%E6%8A%95%E7%A8%BF--%E6%9F%A5%E7%9C%8B-up-%E7%9A%84%E5%8A%A8%E6%80%81',
+            'https://github.com/Eco404/Bilibili-Gate?tab=readme-ov-file#%E5%8F%B3%E9%94%AE%E8%8F%9C%E5%8D%95-%E6%9F%A5%E7%9C%8B-up-%E7%9A%84%E6%8A%95%E7%A8%BF--%E6%9F%A5%E7%9C%8B-up-%E7%9A%84%E5%8A%A8%E6%80%81',
           ),
       },
       {

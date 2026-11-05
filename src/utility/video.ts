@@ -7,7 +7,7 @@ import ms from 'ms'
 export function parseDuration(d?: string) {
   if (!d) return 0
 
-  const units = [1, 60, 360]
+  const units = [1, 60, 3600]
   const splited = d.split(':').map(Number).reverse()
 
   const total = splited.reduce((total, cur, index) => {

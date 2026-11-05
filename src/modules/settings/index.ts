@@ -96,7 +96,8 @@ export const initialSettings = {
     },
 
     imgPreview: {
-      enabled: true,
+      enabledOnHomepage: true,
+      enabledOnSearchPage: true,
 
       // 自动开始预览: 按键选择
       autoPreviewWhenKeyboardSelect: false,
@@ -395,6 +396,7 @@ export async function loadAndSetup() {
       _persist = val
     },
     onUpdate(newValue) {
+      runSettingsMigration(newValue)
       updateSettings(newValue)
     },
   })
@@ -489,6 +491,10 @@ export function runSettingsMigration(val: object | undefined) {
     // 2026-05-12: watchlater deep keys
     ['watchlater.addSeparator', 'watchlaterAddSeparator'],
     ['watchlater.itemsOrder', 'watchlaterItemsOrder'],
+
+    // Split snapshot preview by page, preserving an existing opt-out on both pages.
+    ['videoCard.imgPreview.enabledOnHomepage', 'videoCard.imgPreview.enabled'],
+    ['videoCard.imgPreview.enabledOnSearchPage', 'videoCard.imgPreview.enabled'],
   ]
   // 伪代码: savedConfig[newName] = savedConfig[legacyName]
   for (const [configPath, legacyConfigPath] of config) {

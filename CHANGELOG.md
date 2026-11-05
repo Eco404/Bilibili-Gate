@@ -1,8 +1,17 @@
 # Changelog
 
-## 之后版本的更新记录在 GitHub Release 查看
+## 发布版本
 
-https://github.com/magicdawn/Bilibili-Gate/releases
+https://github.com/Eco404/Bilibili-Gate/releases
+
+## v0.36.0
+
+- 新增搜索结果页快照预览，支持鼠标横向移动查看对应进度快照，以及悬停自动轮播。
+- 快照预览拆分为「主页」和「搜索页」两个开关，保留原设置偏好；搜索页快照与浮动播放器协调触发和显示。
+- 修复多 P 视频预览的分 P 选择与缓存隔离、长视频时长解析，以及缺少快照图片时的预加载处理。
+- 项目主页、文档、反馈和更新地址迁移到 `Eco404/Bilibili-Gate`，移除指向上游 GreasyFork 的安装入口和脚本 `homepageURL`。
+
+## 上游历史更新记录
 
 ## v0.22.3
 

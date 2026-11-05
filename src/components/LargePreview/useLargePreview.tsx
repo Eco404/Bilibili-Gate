@@ -1,5 +1,13 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
-import { useClickAway, useEventListener, useLockFn, useMemoizedFn, useRequest, useUpdateEffect } from 'ahooks'
+import {
+  useClickAway,
+  useEventListener,
+  useLockFn,
+  useMemoizedFn,
+  useRequest,
+  useUnmount,
+  useUpdateEffect,
+} from 'ahooks'
 import { getTargetElement } from 'ahooks/lib/utils/domTarget'
 import {
   useCallback,
@@ -129,6 +137,7 @@ export function useLargePreviewRelated({
     clearTimerRef(enterTimer)
     clearTimerRef(leaveTimer)
   })
+  useUnmount(clearTimers)
 
   const showBy = useMemoizedFn((action: TriggerAction, el: TriggerElement) => {
     debugTrigger('%s: showBy %s %s', bvid, action, el)

@@ -29,7 +29,7 @@
         "uno.config.ts",
         "package.json",
       ],
-      "outputs": ["dist/*.user.js"],
+      "outputs": ["dist/*.user.js", "dist/*.meta.js"],
     },
     "build:vite-raw": {
       "dependsOn": ["build:scss"],
@@ -42,7 +42,7 @@
         "uno.config.ts",
         "package.json",
       ],
-      "outputs": ["dist/bilibili-gate.user.js"],
+      "outputs": ["dist/bilibili-gate.user.js", "dist/bilibili-gate.meta.js"],
     },
   },
 }

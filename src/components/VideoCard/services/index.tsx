@@ -60,8 +60,8 @@ export type ImagePreviewData = {
   videoshotJson?: PvideoJson
 }
 
-export async function fetchImagePreviewData(bvid: string): Promise<ImagePreviewData> {
-  const videoshotJson = await getVideoshotJson(bvid)
+export async function fetchImagePreviewData(bvid: string, cid?: number): Promise<ImagePreviewData> {
+  const videoshotJson = await getVideoshotJson(bvid, cid)
   return { videoshotJson }
 }
 
@@ -98,8 +98,9 @@ async function __fetchVideoPreviewData({
   let dimension: VideoPreviewData['dimension'] | undefined
   if (cid === undefined || aspectRatioFromItem === undefined) {
     const pages = await getVideoPageList(bvid)
-    cid = pages[0]?.cid
-    dimension = pages[0]?.dimension
+    const page = cid === undefined ? pages[0] : pages.find((page) => page.cid === cid)
+    cid ??= page?.cid
+    dimension = page?.dimension
     if (cid === undefined) {
       throw new TypeError(`can not get cid by bvid=${bvid}`)
     }
@@ -126,9 +127,10 @@ async function __fetchVideoPreviewData({
 
 export const fetchVideoPreviewData = pMemoize(__fetchVideoPreviewData, {
   cache: new QuickLRU<string, VideoPreviewData>({ maxSize: 1_0000, maxAge: ms('1h') }),
-  cacheKey([{ bvid, useMp4, usePreferredCdn }]) {
+  cacheKey([{ bvid, cid, useMp4, usePreferredCdn }]) {
     return new URLSearchParams({
       bvid: bvid.toString(),
+      cid: cid?.toString() ?? '',
       useMp4: useMp4.toString(),
       usePreferredCdn: usePreferredCdn.toString(),
     }).toString()

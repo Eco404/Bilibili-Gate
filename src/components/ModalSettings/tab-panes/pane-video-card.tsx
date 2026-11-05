@@ -40,12 +40,13 @@ export function TabPaneVideoCard() {
   const {
     videoCard: {
       actions: { showLargePreview, openInPipWindow },
-      imgPreview: { enabled: imgPreviewEnabled },
+      imgPreview: { enabledOnHomepage, enabledOnSearchPage },
     },
     videoLinkOpenMode,
     style,
     autoPreviewUpdateInterval,
   } = useSettingsSnapshot()
+  const imgPreviewEnabled = enabledOnHomepage || enabledOnSearchPage
 
   const openModeOptions = useMemo(() => {
     return Object.values(EVideoLinkOpenMode)
@@ -153,11 +154,27 @@ export function TabPaneVideoCard() {
         title={
           <>
             快照预览
-            <SwitchSettingItem configPath='videoCard.imgPreview.enabled' tooltip='关闭此功能' className='ml-3' />
+            <label className='ml-3 inline-flex items-center gap-x-6px text-14px'>
+              主页
+              <SwitchSettingItem
+                configPath='videoCard.imgPreview.enabledOnHomepage'
+                aria-label='主页快照预览'
+                tooltip='在主页视频卡片中启用快照预览'
+              />
+            </label>
+            <label className='ml-3 inline-flex items-center gap-x-6px text-14px'>
+              搜索页
+              <SwitchSettingItem
+                configPath='videoCard.imgPreview.enabledOnSearchPage'
+                aria-label='搜索页快照预览'
+                tooltip='在搜索结果的视频封面中启用快照预览；开启后，搜索页浮动预览通过按钮触发'
+              />
+            </label>
           </>
         }
         resetSettingPaths={[
-          'videoCard.imgPreview.enabled',
+          'videoCard.imgPreview.enabledOnHomepage',
+          'videoCard.imgPreview.enabledOnSearchPage',
           'videoCard.imgPreview.autoPreviewWhenKeyboardSelect',
           'videoCard.imgPreview.autoPreviewWhenHover',
           'videoCard.imgPreview.disableWhenMultiSelecting',
@@ -167,10 +184,10 @@ export function TabPaneVideoCard() {
       >
         <div className={sharedClassNames.settingsLine}>
           <CheckboxSettingItem
-            disabled={!imgPreviewEnabled}
+            disabled={!enabledOnHomepage}
             configPath='videoCard.imgPreview.disableWhenMultiSelecting'
             label='多选时禁用'
-            tooltip={explainForFlag('多选开启时, 禁用快照预览', '不禁用')}
+            tooltip={explainForFlag('主页多选开启时, 禁用快照预览', '不禁用')}
           />
           <CheckboxSettingItem
             disabled={!imgPreviewEnabled}
@@ -190,11 +207,12 @@ export function TabPaneVideoCard() {
             }
           />
           <CheckboxSettingItem
-            disabled={!imgPreviewEnabled}
+            disabled={!enabledOnHomepage}
             configPath='videoCard.imgPreview.autoPreviewWhenKeyboardSelect'
             label='自动预览: 键盘选中'
             tooltip={
               <>
+                仅用于主页视频卡片 <br />
                 手动预览快捷键: <HotkeyDisplay k='.' /> or <HotkeyDisplay k='P' />
               </>
             }

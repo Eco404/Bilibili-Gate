@@ -2,19 +2,19 @@
 
 > Bilibili 自定义首页
 
-[![Greasy Fork Version](https://img.shields.io/greasyfork/v/443530?style=flat-square)][gfurl]
-[![Greasy Fork Downloads](https://img.shields.io/greasyfork/dt/443530?style=flat-square)][gfurl]
-[![Greasy Fork Downloads](https://img.shields.io/greasyfork/dd/443530?style=flat-square)][gfurl]
-[![Greasy Fork Rating](https://img.shields.io/greasyfork/rating-count/443530?style=flat-square)][gfurl]
-[![Build Status](https://img.shields.io/github/actions/workflow/status/magicdawn/bilibili-gate/ci.yml?branch=main&style=flat-square&label=CI%20Build)](https://github.com/magicdawn/Bilibili-Gate/actions/workflows/ci.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/Eco404/Bilibili-Gate/ci.yml?branch=main&style=flat-square&label=CI%20Build)](https://github.com/Eco404/Bilibili-Gate/actions/workflows/ci.yml)
 
-[gfurl]: https://greasyfork.org/zh-CN/scripts/443530
+当前仓库为 [Eco404/Bilibili-Gate](https://github.com/Eco404/Bilibili-Gate)，在上游项目基础上增加搜索结果页快照预览等功能。
 
 ## 安装
 
-👉 [GreasyFork][gfurl]
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-👉 [开发版: 包含未发布的更改](https://github.com/magicdawn/Bilibili-Gate/raw/release-nightly/bilibili-gate.mini.user.js)
+👉 [安装正式版](https://github.com/Eco404/Bilibili-Gate/raw/release/bilibili-gate.mini.user.js)
+
+正式版随版本标签发布到 `release` 分支，也可在 [GitHub Releases](https://github.com/Eco404/Bilibili-Gate/releases) 下载。
+
+👉 [安装开发版](https://github.com/Eco404/Bilibili-Gate/raw/release-nightly/bilibili-gate.mini.user.js)
+
+开发版由本仓库 `main` 分支的 CI 构建并发布到 `release-nightly` 分支。两个版本均从当前 Fork 检查更新。
 
 ## 功能
 
@@ -22,6 +22,7 @@
 - [x] App 推荐: 我不想看, 用于推荐系统反馈
 - [x] 视频过滤: 支持按视频属性(播放量 / 时长 / 标题) / 按 UP 过滤推荐视频
 - [x] 视频预览: 支持浮动预览视频; 使用画中画窗口预览 / 观看视频
+- [x] 快照预览: 主页和搜索结果页均支持鼠标滑动查看视频进度快照，可分别开关
 - [x] 动态: 分组动态; 动态搜索词过滤; 过滤「全部」动态; 支持缓存全部动态本地快速搜索等
 - [x] 一站式体验, 方便快捷的访问: 动态 / 稍后再看 / 收藏 / 热门等内容
 - [x] 随机: 稍后再看, 收藏, 每周必看等支持随机顺序
@@ -32,15 +33,15 @@
 
 ## 链接
 
-- 源代码 https://github.com/magicdawn/Bilibili-Gate 如果对你有用,请在 GitHub 点个 Star :)
-- 从 GitHub 安装
-  - [Release](https://github.com/magicdawn/Bilibili-Gate/raw/release/bilibili-gate.user.js) (GreasyFork 版本自动同步源)
-  - [Release 最小化版本](https://github.com/magicdawn/Bilibili-Gate/raw/release/bilibili-gate.mini.user.js)
-  - [CI build](https://github.com/magicdawn/Bilibili-Gate/raw/release-nightly/bilibili-gate.mini.user.js)
+- 源代码 https://github.com/Eco404/Bilibili-Gate 如果对你有用,请在 GitHub 点个 Star :)
+- [发布版本](https://github.com/Eco404/Bilibili-Gate/releases)
+- [反馈问题](https://github.com/Eco404/Bilibili-Gate/issues)
+- [CI build](https://github.com/Eco404/Bilibili-Gate/raw/release-nightly/bilibili-gate.mini.user.js)
 
 ## 声明
 
-代码 fork 自 [indefined/UserScripts](https://github.com/indefined/UserScripts/tree/master/bilibiliHome)
+本仓库 fork 自 [magicdawn/Bilibili-Gate](https://github.com/magicdawn/Bilibili-Gate)，保留上游作者与贡献者的署名及 MIT 许可证。
+上游项目最初 fork 自 [indefined/UserScripts](https://github.com/indefined/UserScripts/tree/master/bilibiliHome)。
 
 - https://github.com/indefined/UserScripts/tree/master/bilibiliHome
 - https://github.com/indefined/UserScripts/issues/76
@@ -198,6 +199,16 @@ _\* 截图均为不带 access_key 匿名获取, 不代表作者喜好_
 - [x] 支持右键菜单
 - [ ] 弹幕预览, 个人需求不是很大. (原版有该功能, 可以试试旧版首页)
 
+#### 搜索页快照预览
+
+1. 打开「设置 → 视频卡片 → 快照预览」，分别设置「主页」和「搜索页」开关。
+2. 要让快照跟随鼠标横向位置，关闭「自动预览: 鼠标悬浮」。开启该选项时，悬停后自动轮播快照。
+3. 在 B 站搜索结果页的视频封面上左右移动鼠标，即可查看相应进度的快照；移出封面恢复原图。
+
+两页共用自动预览、悬浮延迟和更新间隔设置。已有设置会自动迁移；此前关闭快照预览的用户，两页都会保持关闭。
+搜索页开启快照预览时，浮动视频预览通过封面右上角按钮触发；浮动播放器显示时会暂停快照，避免同时触发两种预览。
+快照来自 B 站预先生成的图片，精度取决于采样间隔；没有快照的视频会保留原封面。
+
 ### 动态
 
 #### 关注分组
@@ -281,7 +292,8 @@ _\* 截图均为不带 access_key 匿名获取, 不代表作者喜好_
 ## 开发 or 使用源代码构建最新版本
 
 ```sh
-git clone git@github.com:magicdawn/Bilibili-Gate.git
+git clone git@github.com:Eco404/Bilibili-Gate.git
+cd Bilibili-Gate
 corepack enable # this project use corepack
 pnpm install
 pnpm build # build 完会自动使用 Chrome 打开安装地址
@@ -290,17 +302,18 @@ pnpm build # build 完会自动使用 Chrome 打开安装地址
 ### CI build
 
 - 会使用 main 分支代码自动构建
-- 构建结果: 即上面提到的 [开发版](https://github.com/magicdawn/Bilibili-Gate/raw/release-nightly/bilibili-gate.mini.user.js)
+- 构建结果: 即上面提到的 [开发版](https://github.com/Eco404/Bilibili-Gate/raw/release-nightly/bilibili-gate.mini.user.js)
 
 ## 支持
 
-- 请在 [GitHub](https://github.com/magicdawn/Bilibili-Gate) 点个 Star :)
-- [爱发电](https://afdian.com/a/magicdawn) 为我发电 😘
-- [B站](https://space.bilibili.com/38112129) 为我充电, 大会员B币券也能用 😘
+- 请在 [GitHub](https://github.com/Eco404/Bilibili-Gate) 点个 Star :)
+- 以下赞助入口和名单属于原作者 magicdawn，款项由原作者接收。
+- [爱发电](https://afdian.com/a/magicdawn) 支持原作者
+- [B站](https://space.bilibili.com/38112129) 为原作者充电，大会员 B 币券也能用
 
 ![afdian-magicdawn_w375](https://raw.githubusercontent.com/magicdawn/magicdawn/master/images/afdian-magicdawn_w375_v2.jpg)
 
-### 赞助者
+### 原作者的赞助者
 
 感谢发电: 数据来自爱发电
 
@@ -372,7 +385,7 @@ pnpm build # build 完会自动使用 Chrome 打开安装地址
 
 ## 更新日志
 
-[GitHub Release](https://github.com/magicdawn/Bilibili-Gate/releases)
+[GitHub Releases](https://github.com/Eco404/Bilibili-Gate/releases) · [CHANGELOG](CHANGELOG.md)
 
 ## ❤️ 参考的项目
 
@@ -395,4 +408,4 @@ pnpm build # build 完会自动使用 Chrome 打开安装地址
 
 ## License
 
-the MIT License http://magicdawn.mit-license.org
+[MIT License](LICENSE)

@@ -1,11 +1,10 @@
-import { useMemoizedFn, useMount } from 'ahooks'
+import { useMemoizedFn, useSize } from 'ahooks'
 import clsx from 'clsx'
 import {
   memo,
   useImperativeHandle,
   useMemo,
   useRef,
-  useState,
   type ComponentProps,
   type ComponentPropsWithoutRef,
   type ComponentRef,
@@ -13,6 +12,7 @@ import {
 } from 'react'
 import { minmax } from '$utility/num'
 import { clsZPreviewImageWrapper } from '../index.shared'
+import { getPreviewImageFrame } from './preview-image'
 import type { PvideoData } from '$define'
 
 /**
@@ -53,13 +53,7 @@ export const PreviewImage = memo(function PreviewImage({
   ...restProps
 }: IProps) {
   const rootElRef = useRef<ComponentRef<'div'>>(null)
-  const [size, setSize] = useState(() => ({ width: 0, height: 0 }))
-
-  useMount(() => {
-    const rect = rootElRef.current?.getBoundingClientRect()
-    if (!rect) return
-    setSize({ width: rect.width, height: rect.height })
-  })
+  const size = useSize(rootElRef) ?? { width: 0, height: 0 }
 
   const usingProgress = useMemo(() => {
     function getProgress(): number | undefined {
@@ -88,7 +82,7 @@ export const PreviewImage = memo(function PreviewImage({
 
   return (
     <div {...restProps} ref={rootElRef} className={clsx(clsPreviewImageWrapper, className)}>
-      {!!(pvideo && size.width && size.height && usingProgress) && <PreviewImageInner {...innerProps} />}
+      {!!(pvideo && size.width && size.height) && <PreviewImageInner {...innerProps} />}
     </div>
   )
 })
@@ -106,19 +100,13 @@ const PreviewImageInner = memo(function PreviewImageInner({
   elWidth: number
   elHeight: number
 }) {
-  let index = useMemo(() => calcIndex(pvideo?.index || [], t) ?? 0, [pvideo, t])
-
-  const { img_x_len: colCount, img_y_len: rowCount, img_x_size: w, img_y_size: h } = pvideo
-  const countPerPreview = rowCount * colCount
-
-  index = index + 1 // 1 based
-  const snapshotIndex = Math.floor(index / countPerPreview) // 0 based, 第几张
-  const indexInSnapshot = index - snapshotIndex * countPerPreview // 这一张的第几个, 1 based
-
-  const snapshotUrl = pvideo.image?.[snapshotIndex] || ''
-
-  const indexRow = Math.floor(indexInSnapshot / colCount) + 1 // 1 based
-  const indexCol = indexInSnapshot - (indexRow - 1) * colCount // 1 based
+  const { img_x_len: colCount, img_y_len: rowCount } = pvideo
+  const frame = useMemo(
+    () => getPreviewImageFrame(pvideo.index || [], t, colCount, rowCount),
+    [pvideo, t, colCount, rowCount],
+  )
+  const snapshotUrl = frame && pvideo.image?.[frame.imageIndex]
+  if (!frame || !snapshotUrl) return null
 
   // 缩放比例:
   // 从原始图片(rawWidth * rawHeight) 的 (startX, startY)点 中抠出 w*h
@@ -128,19 +116,8 @@ const PreviewImageInner = memo(function PreviewImageInner({
   const newImgWidth = elWidth * colCount
   const newImgHeight = elHeight * rowCount
 
-  const startY = (indexRow - 1) * elHeight
-  const startX = (indexCol - 1) * elWidth
-
-  // console.log({
-  //   t,
-  //   indexRow,
-  //   indexCol,
-  //   img: pvideo.image,
-  //   // elementW,
-  //   // elementH,
-  //   // startX,
-  //   // startY,
-  // })
+  const startY = frame.rowIndex * elHeight
+  const startX = frame.columnIndex * elWidth
 
   return (
     <div
@@ -163,60 +140,4 @@ export function SimpleProgressBar({ progress, className, ...props }: { progress:
       <div data-role='bar' className='h-full bg-gate-primary' style={{ width: `${progress * 100}%` }} />
     </div>
   )
-}
-
-function calcIndex(arr: number[], t: number) {
-  let index = findIndex(arr, t)
-  if (index !== -1) return index
-
-  // https://www.bilibili.com/video/av297635747
-  // 没有后面的预览
-  if (t > arr.at(-1)!) {
-    index = arr.length - 1
-    return index
-  }
-}
-
-function findIndex(arr: number[], target: number): number {
-  // O(n)
-  // let index = arr.findIndex((val, index, arr) => {
-  //   const nextVal = arr[index + 1]
-  //   if (val <= target && target < nextVal) {
-  //     return true
-  //   } else {
-  //     return false
-  //   }
-  // })
-
-  let l = 0
-  let r = arr.length - 1
-  let possible = -1
-
-  while (l <= r) {
-    const mid = Math.floor((l + r) / 2)
-    const mv = arr[mid]
-
-    if (target === mv) {
-      return mid
-    }
-
-    if (mv < target) {
-      l = mid + 1
-      possible = mid
-    }
-    // target < mv
-    else {
-      r = mid - 1
-    }
-  }
-
-  if (possible === -1) return -1
-
-  const v = arr[possible]
-  const v1 = arr[possible + 1] ?? 0
-  if (v < target && target < v1) {
-    return possible
-  } else {
-    return -1
-  }
 }

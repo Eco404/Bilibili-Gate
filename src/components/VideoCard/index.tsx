@@ -212,7 +212,7 @@ const VideoCardInner = memo(function VideoCardInner({
     },
     videoCard: {
       actions: videoCardActions,
-      imgPreview: { enabled: imgPreviewEnabled, autoPreviewWhenHover, disableWhenMultiSelecting },
+      imgPreview: { enabledOnHomepage: imgPreviewEnabled, autoPreviewWhenHover, disableWhenMultiSelecting },
     },
     spaceUpload: spaceUploadSettings,
     watchlater: watchlaterSettings,
@@ -335,6 +335,7 @@ const VideoCardInner = memo(function VideoCardInner({
     // el
     previewImageEl,
   } = usePreviewRelated({
+    enabled: showPreviewImageEl,
     uniqId: item.uniqId,
     recSharedEmitter,
     title,
@@ -355,9 +356,9 @@ const VideoCardInner = memo(function VideoCardInner({
 
     // 自动开始预览
     if (settings.videoCard.imgPreview.autoPreviewWhenKeyboardSelect) {
-      tryFetchImagePreviewData().then(() => {
-        onStartPreviewAnimation(false)
-      })
+      tryFetchImagePreviewData()
+        .then(() => onStartPreviewAnimation(false))
+        .catch((err) => appWarn('获取快照预览失败: %s', bvid, err))
     }
   }, [active])
 

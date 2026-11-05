@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -49,46 +52,32 @@ jobs:
         env:
           MINIFY: 'true'
 
-      #
-      # commit to release branch, orphan commit
-      #
-      - run: |
-          mkdir dist-release-branch
-          touch ./dist-release-branch/bilibili-gate.user.js
-          touch ./dist-release-branch/bilibili-gate.mini.user.js
-      - uses: peaceiris/actions-gh-pages@v4
-        with:
-          publish_branch: release
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist-release-branch
-          force_orphan: true
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+      - name: Prepare release notes
+        run: |
+          cp README.md CHANGELOG.md ./dist
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const { version } = JSON.parse(readFileSync('package.json', 'utf8'))
+          const changelog = readFileSync('CHANGELOG.md', 'utf8')
+          const notes = changelog.split(`## v${version}\n`)[1]?.split(/\n## /)[0]?.trim()
+          if (!notes) throw new Error(`Missing changelog for v${version}`)
+          writeFileSync('dist/RELEASE_NOTES.md', notes + '\n')
+          NODE
 
-      #
-      # commit to release branch
-      #
-      - run: cp README.md ./dist
+      # Publish both scripts and their metadata for userscript auto-updates.
       - uses: peaceiris/actions-gh-pages@v4
         with:
           publish_branch: release
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-          force_orphan: false
+          force_orphan: true
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: ${{ github.event.head_commit.message }}
-
-      # release with changelog
-      - run: pnpx changeloggithub@0
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-
-      # delay, for action-gh-release cann't detect existing release
-      - run: sleep 3
+          commit_message: 'Release ${{ github.ref_name }}'
 
       # release assets
       - name: Upload *.user.js to Release
         uses: softprops/action-gh-release@v3
         with:
           files: ./dist/*.user.js
+          body_path: ./dist/RELEASE_NOTES.md

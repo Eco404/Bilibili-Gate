@@ -239,25 +239,21 @@ export function TabPaneBasic() {
       >
         <div className={sharedClassNames.settingsLine}>
           <AntdTooltip title='来个 Star 支持一下'>
-            <Button href='https://github.com/magicdawn/Bilibili-Gate' target='_blank'>
+            <Button href='https://github.com/Eco404/Bilibili-Gate' target='_blank'>
               GitHub 主页
             </Button>
           </AntdTooltip>
           <Button href='https://afdian.com/a/magicdawn' target='_blank'>
-            「爱发电」支持
-          </Button>
-
-          <Button href='https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate' target='_blank'>
-            GreasyFork 主页
+            「爱发电」支持原作者
           </Button>
 
           <Button
-            href='https://github.com/magicdawn/Bilibili-Gate/#%E5%BF%AB%E6%8D%B7%E9%94%AE%E8%AF%B4%E6%98%8E'
+            href='https://github.com/Eco404/Bilibili-Gate/#%E5%BF%AB%E6%8D%B7%E9%94%AE%E8%AF%B4%E6%98%8E'
             target='_blank'
           >
             查看可用的快捷键
           </Button>
-          <Button href='https://github.com/magicdawn/Bilibili-Gate/releases' target='_blank'>
+          <Button href='https://github.com/Eco404/Bilibili-Gate/releases' target='_blank'>
             更新日志
           </Button>
         </div>

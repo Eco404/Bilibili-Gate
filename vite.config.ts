@@ -17,7 +17,9 @@ import z from 'zod'
 import packageJson from './package.json' with { type: 'json' }
 
 const { name: packageName, version: packageVersion } = packageJson
+const repositoryUrl = 'https://github.com/Eco404/Bilibili-Gate'
 const isDev = process.env.NODE_ENV === 'development'
+const isNightly = !!process.env.RELEASE_NIGHTLY && !process.env.RELEASE
 if (isDev) {
   // only needed in dev mode
   typedScssModules(`${import.meta.dirname}/src/**/{*.module.scss,_*.scss}`, {
@@ -27,18 +29,14 @@ if (isDev) {
 
 // version
 let scriptVersion = packageVersion
-if (process.env.RELEASE) {
-  // release Actions
-} else {
-  // local & nightly Actions
-  // use `git describe`
-  // https://stackoverflow.com/questions/8595391/how-to-show-git-commit-using-number-of-commits-since-a-tag
-  const gitDescribe = process.env.GHD_DESCRIBE || execSync(`git describe`).toString().trim() // e.g v0.19.2-6-g0230769
-  scriptVersion = gitDescribe.slice(1) // rm prefix v
-
-  // v0.0.1-:commit_num-:commit_hash 居然比 v0.0.1 小
-  // 变成 v0.0.1.:commit_num-:commit_hash
-  scriptVersion = scriptVersion.replace(/^(\d+\.\d+\.\d+)-/, (match, p1) => `${p1}.`)
+if (isNightly) {
+  const gitDescribe = process.env.GHD_DESCRIBE || execSync('git describe --tags --long --always').toString().trim()
+  const match = /-(\d+)-g([\da-f]+)$/.exec(gitDescribe)
+  const distance = match?.[1] ?? execSync('git rev-list --count HEAD').toString().trim()
+  const revision = match?.[2] ?? gitDescribe
+  // Keep package.json authoritative, including forks with no release tags yet.
+  // Numeric suffixes sort after the stable version in userscript managers.
+  if (Number(distance) > 0) scriptVersion = `${packageVersion}.${distance}-g${revision}`
 }
 
 // minify
@@ -53,7 +51,7 @@ const minify = (() => {
     if (parsed.success) return parsed.data
   }
 
-  // GreasyFork: default no minify
+  // Release: default no minify
   if (process.env.RELEASE) return false
 
   return true
@@ -64,19 +62,14 @@ const fileName = `${packageName}${miniSuffix}.user.js`
 const metaFileName = `${packageName}${miniSuffix}.meta.js`
 const willExternalAntd = false //  !minify
 
-const branchBaseUrl = (branch: string) =>
-  `https://raw.githubusercontent.com/magicdawn/Bilibili-Gate/refs/heads/${branch}/`
+const branchBaseUrl = (branch: string) => `https://raw.githubusercontent.com/Eco404/Bilibili-Gate/refs/heads/${branch}/`
 
 let downloadURL: string | undefined
 let updateURL: string | undefined
 if (isDev) {
   // noop
-} else if (process.env.RELEASE) {
-  const baseUrl = branchBaseUrl('release')
-  downloadURL = `${baseUrl}${fileName}`
-  updateURL = `${baseUrl}${metaFileName}`
 } else {
-  const baseUrl = branchBaseUrl('release-nightly')
+  const baseUrl = branchBaseUrl(isNightly ? 'release-nightly' : 'release')
   downloadURL = `${baseUrl}${fileName}`
   updateURL = `${baseUrl}${metaFileName}`
 }
@@ -158,14 +151,13 @@ export default defineConfig(({ command, mode }) => ({
       entry: './src/index.ts',
       userscript: {
         'name': 'Bilibili-Gate',
-        'description': 'Bilibili 自定义首页',
+        'description': 'Bilibili 自定义首页与搜索页快照预览',
         // 'description': 'Add app like recommend part to bilibili homepage',
         'version': scriptVersion,
-        'namespace': 'https://magicdawn.fun',
+        'namespace': repositoryUrl,
         'icon': 'https://www.bilibili.com/favicon.ico',
-        'author': 'magicdawn',
-        'supportURL': 'https://github.com/magicdawn/Bilibili-Gate/issues',
-        'homepageURL': 'https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate',
+        'author': 'Eco404, magicdawn (original author)',
+        'supportURL': `${repositoryUrl}/issues`,
         downloadURL,
         updateURL,
         'license': 'MIT',
@@ -202,7 +194,7 @@ export default defineConfig(({ command, mode }) => ({
 
       build: {
         fileName,
-        metaFileName: process.env.CI ? metaFileName : undefined,
+        metaFileName,
 
         // unpkg is not stable
         // https://greasyfork.org/zh-CN/scripts/443530-bilibili-gate/discussions/197900

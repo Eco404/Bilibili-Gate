@@ -26,11 +26,11 @@ function isVideoshotJsonCacheable(json: PvideoJson) {
 
 // api.bilibili.com/pvideo?aid=${target.dataset.id}&_=${Date.now()
 // 视频预览
-async function __fetchVideoshotJson(bvid: string) {
+async function __fetchVideoshotJson(bvid: string, cid?: number) {
   // 2023-09-08 pvideo 出现 404, 切换为 videoshot
   // const res = await request.get('/pvideo', { params: { aid } })
   const res = await request.get('/x/player/videoshot', {
-    params: { bvid, index: '1' },
+    params: { bvid, cid, index: '1' },
   })
   const json = res.data as PvideoJson
 
@@ -46,10 +46,11 @@ async function __fetchVideoshotJson(bvid: string) {
 
 const videoshotCache = new QuickLRU<string, PvideoJson>({ maxSize: 1_0000 })
 
-export const getVideoshotJson = reusePendingPromise(async (bvid: string): Promise<PvideoJson> => {
+export const getVideoshotJson = reusePendingPromise(async (bvid: string, cid?: number): Promise<PvideoJson> => {
+  const cacheKey = JSON.stringify([bvid, cid])
   // cache:lookup
-  if (videoshotCache.has(bvid)) {
-    const cached = videoshotCache.get(bvid)
+  if (videoshotCache.has(cacheKey)) {
+    const cached = videoshotCache.get(cacheKey)
     if (cached) return cached
   }
 
@@ -59,7 +60,7 @@ export const getVideoshotJson = reusePendingPromise(async (bvid: string): Promis
   let videoshotJson: PvideoJson
   do {
     retryTimes++
-    videoshotJson = await __fetchVideoshotJson(bvid)
+    videoshotJson = await __fetchVideoshotJson(bvid, cid)
     if (isVideoshotJsonCacheable(videoshotJson)) {
       break
     } else {
@@ -69,11 +70,11 @@ export const getVideoshotJson = reusePendingPromise(async (bvid: string): Promis
 
   // cache:save
   if (isVideoshotJsonCacheable(videoshotJson)) {
-    videoshotCache.set(bvid, videoshotJson)
+    videoshotCache.set(cacheKey, videoshotJson)
   }
 
   const videoshotData = videoshotJson.data
-  if (settings.videoCard.imgPreview.autoPreviewWhenHover) {
+  if (settings.videoCard.imgPreview.autoPreviewWhenHover && videoshotData?.image?.length) {
     // preload first img & without wait rest
     const imgs = videoshotData?.image || []
     await preloadImg(imgs[0])
